@@ -1,0 +1,82 @@
+import { createContext, useContext, useReducer, useEffect } from 'react';
+
+const CartContext = createContext();
+
+const STORAGE_KEY = 'akshar_cart';
+
+function loadCart() {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+function cartReducer(state, action) {
+  switch (action.type) {
+    case 'ADD_TO_CART': {
+      const existing = state.find(
+        item => item.id === action.payload.id && item.size === action.payload.size && item.color === action.payload.color
+      );
+      if (existing) {
+        return state.map(item =>
+          item.id === existing.id && item.size === existing.size && item.color === existing.color
+            ? { ...item, quantity: item.quantity + (action.payload.quantity || 1) }
+            : item
+        );
+      }
+      return [...state, { ...action.payload, quantity: action.payload.quantity || 1 }];
+    }
+    case 'REMOVE_FROM_CART':
+      return state.filter((_, index) => index !== action.payload);
+    case 'UPDATE_QUANTITY':
+      return state.map((item, index) =>
+        index === action.payload.index
+          ? { ...item, quantity: Math.max(1, action.payload.quantity) }
+          : item
+      );
+    case 'CLEAR_CART':
+      return [];
+    default:
+      return state;
+  }
+}
+
+export function CartProvider({ children }) {
+  const [cart, dispatch] = useReducer(cartReducer, [], loadCart);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cart));
+  }, [cart]);
+
+  const addToCart = (product, size, color, quantity = 1) => {
+    dispatch({
+      type: 'ADD_TO_CART',
+      payload: { ...product, size, color, quantity }
+    });
+  };
+
+  const removeFromCart = (index) => {
+    dispatch({ type: 'REMOVE_FROM_CART', payload: index });
+  };
+
+  const updateQuantity = (index, quantity) => {
+    dispatch({ type: 'UPDATE_QUANTITY', payload: { index, quantity } });
+  };
+
+  const clearCart = () => {
+    dispatch({ type: 'CLEAR_CART' });
+  };
+
+  const cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+  return (
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart, cartTotal, cartCount }}>
+      {children}
+    </CartContext.Provider>
+  );
+}
+
+export const useCart = () => useContext(CartContext);

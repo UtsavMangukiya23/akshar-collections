@@ -1,0 +1,9 @@
+node_modules/
+dist/
+server/akshar.db
+server/akshar.db-shm
+server/akshar.db-wal
+.env
+*.log
+
+*.log.envserver/akshar.dbdist/
