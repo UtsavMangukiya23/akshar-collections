@@ -51,29 +51,34 @@ export default function CheckoutPage() {
     setSubmitting(true);
 
     try {
-      // Save order to database via API
-      const shippingAddress = `${formData.address}, ${formData.city}, ${formData.state} - ${formData.pincode}`;
-      const apiResponse = await ordersAPI.create({
-        items: cart.map(item => ({
-          productName: item.name,
-          productId: item.id,
-          size: item.size,
-          color: item.color,
-          quantity: item.quantity,
-          price: item.price,
-          image: item.image,
-        })),
-        totalAmount: total,
-        shippingAmount: shipping,
-        shippingAddress,
-        paymentMethod: formData.paymentMethod,
-        customerName: `${formData.firstName} ${formData.lastName}`,
-        customerEmail: formData.email,
-      });
-
-      // Build order summary for notifications (use DB order_id)
+      // Build order summary for notifications
       const summary = buildOrderSummary({ formData, cart, cartTotal, shipping, total });
-      summary.orderId = apiResponse.order.order_id;
+
+      // Try saving order to database via API (optional — works without backend)
+      try {
+        const shippingAddress = `${formData.address}, ${formData.city}, ${formData.state} - ${formData.pincode}`;
+        const apiResponse = await ordersAPI.create({
+          items: cart.map(item => ({
+            productName: item.name,
+            productId: item.id,
+            size: item.size,
+            color: item.color,
+            quantity: item.quantity,
+            price: item.price,
+            image: item.image,
+          })),
+          totalAmount: total,
+          shippingAmount: shipping,
+          shippingAddress,
+          paymentMethod: formData.paymentMethod,
+          customerName: `${formData.firstName} ${formData.lastName}`,
+          customerEmail: formData.email,
+        });
+        summary.orderId = apiResponse.order.order_id;
+      } catch {
+        // Backend unavailable — continue with local order ID
+      }
+
       setOrderSummary(summary);
       setOrderPlaced(true);
       clearCart();

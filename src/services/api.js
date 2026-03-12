@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:3001/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 function getToken() {
   return localStorage.getItem('akshar_token');
@@ -19,7 +19,13 @@ async function request(endpoint, options = {}) {
     ...options,
   });
 
-  const data = await res.json();
+  const text = await res.text();
+  let data;
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error('Server returned an invalid response. Please try again later.');
+  }
 
   if (!res.ok) {
     throw new Error(data.error || 'Something went wrong');
